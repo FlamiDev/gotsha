@@ -1,16 +1,18 @@
 package api
 
-import time "time"
+import (
+	time "time"
+)
 
 type GreetingData struct {
-	message   string
-	timestamp int64
+	Message   string
+	Timestamp int64
 }
 
 func Greeting(name string) GreetingData {
 	timestamp := time.Now().Unix()
 	return GreetingData{
-		message:   "Hello, " + name + "!",
-		timestamp: timestamp,
+		Message:   "Hello, " + name + "!",
+		Timestamp: timestamp,
 	}
 }

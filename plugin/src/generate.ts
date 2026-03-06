@@ -1,11 +1,15 @@
 import {GoType, ParseResults} from "./parse";
+import {getApiUrl} from "./getApiUrl";
 
 export function generateCode({functions}: ParseResults, path: string): string {
-    const safePath = path.replaceAll(/[^a-zA-Z0-9]/g, "_")
     let result = ""
     for (const func of functions) {
-        const apiPath = `/api/${safePath}/${func.name}`
-        const args = func.arguments.map(a => a.name).join(", ")
+        const apiPath = getApiUrl(path, func.name)
+        const argsList = func.arguments
+        if (argsList.at(-1)?.name === "ctx") {
+            argsList.pop()
+        }
+        const args = argsList.map(a => a.name).join(", ")
         const body = `return fetch("${apiPath}", { method: "POST", body: JSON.stringify({${args}}) }).then(res => res.json())`
         result += `export function ${func.name}(${args}) {\n\t${body}\n}\n\n`
     }
@@ -25,13 +29,17 @@ export function generateTypeDef({types, functions}: ParseResults, path: string):
     return result
 }
 
+function isUpper(str: string): boolean {
+    return str === str.toUpperCase()
+}
+
 function goTypeToTs(goType: GoType): string {
     if (goType === "string") {
         return "string"
-    } else if (goType === "number") {
-        return "number"
     } else if (goType === "boolean") {
         return "boolean"
+    } else if (goType.kind === "number") {
+        return "number"
     } else if (goType.kind === "ref") {
         return goType.typeName
     } else if (goType.kind === "array") {
@@ -39,7 +47,7 @@ function goTypeToTs(goType: GoType): string {
     } else if (goType.kind === "map") {
         return `{ [key: ${goTypeToTs(goType.keyType)}]: ${goTypeToTs(goType.valueType)} }`
     } else if (goType.kind === "struct") {
-        const fields = goType.fields.map(field => `${field.name}: ${goTypeToTs(field.type)}`).join("; ")
+        const fields = goType.fields.filter(field => isUpper(field.name[0])).map(field => `${field.name}: ${goTypeToTs(field.type)}`).join("; ")
         return `{ ${fields} }`
     } else {
         throw new Error(`Unsupported Go type: ${JSON.stringify(goType)}`)

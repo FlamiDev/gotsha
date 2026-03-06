@@ -39,7 +39,10 @@ export interface FunctionArgument {
     type: GoType
 }
 
-export type GoType = "string" | "number" | "boolean" | {
+export type GoType = "string" | "boolean" | {
+    kind: "number",
+    variant: "int" | "int8" | "int16" | "int32" | "int64" | "uint" | "uint8" | "uint16" | "uint32" | "uint64" | "float32" | "float64"
+} | {
     kind: "ref",
     typeName: string
 } | {
@@ -86,6 +89,8 @@ function parseGoType(node: Treesitter.SyntaxNode): GoType {
         switch (node.text) {
             case "string":
                 return "string"
+            case "bool":
+                return "boolean"
             case "int":
             case "int8":
             case "int16":
@@ -98,9 +103,10 @@ function parseGoType(node: Treesitter.SyntaxNode): GoType {
             case "uint64":
             case "float32":
             case "float64":
-                return "number"
-            case "bool":
-                return "boolean"
+                return {
+                    kind: "number",
+                    variant: node.text
+                }
             default:
                 return {
                     kind: "ref",

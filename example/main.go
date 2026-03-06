@@ -1,10 +1,8 @@
 package main
 
-import (
-	"fmt"
-)
-
 func main() {
-	s := "gopher"
-	fmt.Printf("Hello and welcome, %s!\n", s)
+	err := setupServer(&Context{}, ":8080")
+	if err != nil {
+		panic(err)
+	}
 }
