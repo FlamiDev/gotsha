@@ -1,0 +1,13 @@
+.idea
+**/*.exe
+**/*.exe~
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.test
+**/*.out
+**/.env
+**/node_modules
+**/dist
+**/build
+**/generated
