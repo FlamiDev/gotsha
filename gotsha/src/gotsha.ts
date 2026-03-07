@@ -12,6 +12,7 @@ import killPort from "kill-port"
 const goApiDir = join(process.cwd(), "api")
 const webGeneratedDir = join(process.cwd(), "web", "generated")
 const goGeneratedFile = join(process.cwd(), "generated.go")
+const goModFile = join(process.cwd(), "go.mod")
 
 const parseResultCache = new Map<string, ParseResults>()
 
@@ -41,8 +42,8 @@ async function generateAllTypeDefs() {
     }
 }
 
-async function regenerateGoCode(devMode: boolean = false) {
-    const code = generateGo(parseResultCache, devMode)
+async function regenerateGoCode(packageName: string, devMode: boolean = false) {
+    const code = generateGo(packageName, parseResultCache, devMode)
     await writeFile(goGeneratedFile, code, "utf-8")
 }
 
@@ -76,9 +77,9 @@ export default function gotsha() {
     }
 }
 
-async function watchMode() {
+async function watchMode(packageName: string) {
     await generateAllTypeDefs()
-    await regenerateGoCode(true)
+    await regenerateGoCode(packageName, true)
     const server = await createServer()
     await server.listen()
     server.printUrls()
@@ -95,7 +96,7 @@ async function watchMode() {
                 } else {
                     await writeTypeDef(event.path.slice(4))
                 }
-                await regenerateGoCode(true)
+                await regenerateGoCode(packageName, true)
             }
             console.log("Restarting Go server...")
             goProcess.kill()
@@ -110,20 +111,28 @@ async function watchMode() {
     }
 }
 
-async function buildMode() {
+async function buildMode(packageName: string) {
     await generateAllTypeDefs()
-    await regenerateGoCode()
+    await regenerateGoCode(packageName)
     await build()
     execSync("go build", {stdio: "inherit"})
 }
 
 (async () => {
     if (process.argv[1].endsWith("gotsha.js")) {
+        const goModContent = await readFile(goModFile, "utf-8")
+        const match = goModContent.match(/module\s+(\S+)/)
+        if (!match) {
+            console.error("Cannot find module name in go.mod")
+            process.exit(1)
+        }
+        const packageName = match[1]
+
         const arg: string | undefined = process.argv[2]
         if (arg == undefined) {
-            await watchMode()
+            await watchMode(packageName)
         } else if (arg === "build") {
-            await buildMode()
+            await buildMode(packageName)
         } else {
             console.error("Unknown argument", arg)
         }

@@ -1,12 +1,12 @@
 import {GoType, ParseResults} from "./parse";
 import {getApiUrl} from "./getApiUrl";
 
-const template = (body: string, devMode: boolean) => `package main
+const template = (packageName: string, body: string, devMode: boolean) => `package main
 
 import (
 ${devMode ? "" : `	"embed"`}
 	"encoding/json"
-	"gotsha/api"
+	"${packageName}/api"
 	"net/http"
 )
 
@@ -61,7 +61,7 @@ function writeGoType(type: GoType): string {
 
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
 
-export function generateGo(parseResults: Map<string, ParseResults>, devMode: boolean = false): string {
+export function generateGo(packageName: string, parseResults: Map<string, ParseResults>, devMode: boolean = false): string {
     let body = "";
     for (const [file, results] of parseResults.entries()) {
         for (const func of results.functions) {
@@ -91,5 +91,5 @@ export function generateGo(parseResults: Map<string, ParseResults>, devMode: boo
             body += handlerTemplate(url, contents)
         }
     }
-    return template(body, devMode)
+    return template(packageName, body, devMode)
 }
