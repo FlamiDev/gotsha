@@ -16,8 +16,8 @@ importers:
         specifier: ^4.1.17
         version: 4.1.17(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.6.1))
       gotsha:
-        specifier: link:../plugin
-        version: link:../plugin
+        specifier: link:../gotsha
+        version: link:../gotsha
       solid-devtools:
         specifier: ^0.34.4
         version: 0.34.4(solid-js@1.9.10)(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.6.1))
