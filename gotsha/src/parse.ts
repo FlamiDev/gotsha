@@ -1,7 +1,7 @@
 import Treesitter from "tree-sitter";
 import Go from "tree-sitter-go";
 
-export function parseCode(src: string): ParseResults {
+export function parseCode(src: string, fileName: string): ParseResults {
     const parser = new Treesitter()
     parser.setLanguage(Go as any)
     const tree = parser.parse(src)
@@ -12,9 +12,9 @@ export function parseCode(src: string): ParseResults {
             const typeSpec = node.child(1)!
             const typeName = typeSpec.child(0)!.text
             const typeValue = typeSpec.child(1)!
-            types[typeName] = parseGoType(typeValue)
+            types[typeName] = parseGoType(typeValue, fileName)
         } else if (node.type === "function_declaration") {
-            functions.push(getFunctionDetails(node))
+            functions.push(getFunctionDetails(node, fileName))
         }
     }
     return {
@@ -64,7 +64,7 @@ export type GoType = {
     name: "context" | "session"
 }
 
-function getFunctionDetails(node: Treesitter.SyntaxNode): FunctionDetails {
+function getFunctionDetails(node: Treesitter.SyntaxNode, fileName: string): FunctionDetails {
     if (node.type !== "function_declaration") {
         throw new Error(`Node is not a function declaration: ${node.type}`)
     }
@@ -78,11 +78,11 @@ function getFunctionDetails(node: Treesitter.SyntaxNode): FunctionDetails {
         const paramTypeNode = paramNode.child(1)!
         args.push({
             name: paramNameNode.text,
-            type: parseGoType(paramTypeNode)
+            type: parseGoType(paramTypeNode, fileName)
         })
     }
 
-    const returnType = parseGoType(returnTypeNode)
+    const returnType = parseGoType(returnTypeNode, fileName)
 
     return {
         name: nameNode.text,
@@ -91,7 +91,7 @@ function getFunctionDetails(node: Treesitter.SyntaxNode): FunctionDetails {
     }
 }
 
-function parseGoType(node: Treesitter.SyntaxNode): GoType {
+function parseGoType(node: Treesitter.SyntaxNode, fileName: string): GoType {
     if (node.type === "type_identifier") {
         switch (node.text) {
             case "string":
@@ -128,15 +128,15 @@ function parseGoType(node: Treesitter.SyntaxNode): GoType {
         const elementTypeNode = node.child(1)!
         return {
             kind: "array",
-            elementType: parseGoType(elementTypeNode)
+            elementType: parseGoType(elementTypeNode, fileName)
         }
     } else if (node.type === "map_type") {
         const keyTypeNode = node.child(1)!
         const valueTypeNode = node.child(3)!
         return {
             kind: "map",
-            keyType: parseGoType(keyTypeNode),
-            valueType: parseGoType(valueTypeNode)
+            keyType: parseGoType(keyTypeNode, fileName),
+            valueType: parseGoType(valueTypeNode, fileName)
         }
     } else if (node.type === "struct_type") {
         const fields: { name: string, type: GoType }[] = []
@@ -146,7 +146,7 @@ function parseGoType(node: Treesitter.SyntaxNode): GoType {
             const fieldTypeNode = fieldNode.child(1)!
             fields.push({
                 name: fieldNameNode.text,
-                type: parseGoType(fieldTypeNode)
+                type: parseGoType(fieldTypeNode, fileName)
             })
         }
         return {
@@ -164,7 +164,11 @@ function parseGoType(node: Treesitter.SyntaxNode): GoType {
                 kind: "special",
                 name: "session"
             }
-        } else throw new Error(`Unsupported pointer type: ${node.text}, only *Context and *Session are supported`)
+        } else throw new Error(
+            `Unsupported pointer type in ${fileName}:${node.startPosition.row}:${node.startPosition.column}: ${node.text}, only *Context and *Session are supported`
+        )
     }
-    throw new Error(`Unsupported Go type: ${node.type}`)
+    throw new Error(
+        `Unsupported Go type in ${fileName}:${node.startPosition.row}:${node.startPosition.column}: ${node.type} "${node.text}"`
+    )
 }

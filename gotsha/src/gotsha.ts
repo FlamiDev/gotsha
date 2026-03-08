@@ -20,7 +20,7 @@ const parseResultCache = new Map<string, ParseResults>()
 async function writeTypeDef(relativePath: string) {
     const actualPath = join(goApiDir, relativePath)
     const src = await readFile(actualPath, "utf-8")
-    const result = parseCode(src)
+    const result = parseCode(src, actualPath)
     parseResultCache.set(relativePath, result)
     const types = generateTypeDef(result, relativePath)
     const generatedPath = join(webGeneratedDir, relativePath.replace(".go", ".d.ts"))
@@ -37,7 +37,7 @@ async function deleteTypeDef(relativePath: string) {
 async function generateAllTypeDefs() {
     const files = await readdir(goApiDir, {recursive: true})
     for (const file of files) {
-        if (file.endsWith(".go")) {
+        if (file.endsWith(".go") && !file.endsWith("context.go")) {
             await writeTypeDef(file)
         }
     }
@@ -70,7 +70,7 @@ export default function gotsha() {
             if (goFilePath.endsWith('.go')) {
                 const actualPath = join(goApiDir, goFilePath)
                 const src = await readFile(actualPath, "utf-8")
-                const result = parseCode(src)
+                const result = parseCode(src, actualPath)
                 return generateCode(result, goFilePath)
             }
             return null
