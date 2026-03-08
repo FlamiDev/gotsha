@@ -13,7 +13,7 @@ ${devMode ? "" : `	"embed"`}
 ${devMode ? "" : `//go:embed dist/*
 var staticFiles embed.FS`}
 
-func setupServer(ctx *Context, addr string) error {
+func setupServer(ctx *api.Context, addr string) error {
 	${body}
 	${devMode ? "" : `http.Handle("/", http.FileServer(http.FS(staticFiles)))`}
 	return http.ListenAndServe(addr, nil)

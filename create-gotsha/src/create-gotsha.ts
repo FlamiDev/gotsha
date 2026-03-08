@@ -35,6 +35,11 @@ const gitRepo = "https://github.com/FlamiDev/gotsha-template.git";
     const updatedGoModContent = goModContent.replace("module_name_template", packageName)
     await writeFile(goModPath, updatedGoModContent, "utf-8");
 
+    const mainGoPath = join(packagePath, "main.go");
+    const mainGoContent = await readFile(mainGoPath, "utf-8");
+    const updatedMainGoContent = mainGoContent.replace("module_name_template", packageName)
+    await writeFile(mainGoPath, updatedMainGoContent, "utf-8");
+
     const gitignoreTemplatePath = join(packagePath, ".gitignore.template");
     const gitignorePath = join(packagePath, ".gitignore");
     await rename(gitignoreTemplatePath, gitignorePath);

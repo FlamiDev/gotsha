@@ -8,6 +8,7 @@ import * as process from "node:process";
 import {execSync, spawn} from "node:child_process";
 import {watcher} from "./watcher";
 import killPort from "kill-port"
+import {ChildProcess} from "child_process";
 
 const goApiDir = join(process.cwd(), "api")
 const webGeneratedDir = join(process.cwd(), "web", "generated")
@@ -83,14 +84,23 @@ async function watchMode(packageName: string) {
     const server = await createServer()
     await server.listen()
     server.printUrls()
-    try {
-        await killPort(8080)
-    } catch (e) {}
-    let goProcess = spawn("go", ["run", "."], {stdio: "inherit"});
+    let goProcess: ChildProcess = null!
+    const createGoProcess = async () => {
+        goProcess?.kill()
+        try {
+            await killPort(8080)
+        } catch (e) {
+        }
+        goProcess = spawn("go", ["run", "."], {stdio: "inherit"})
+        goProcess.once("exit", () => {
+            createGoProcess()
+        })
+    }
+    await createGoProcess()
     try {
         for await (const event of watcher(".")) {
             console.log(`File ${event.type}: ${event.path}`)
-            if (event.path.startsWith("api")) {
+            if (event.path.startsWith("api") && !event.path.endsWith("context.go")) {
                 if (event.type === "remove") {
                     await deleteTypeDef(event.path.slice(4))
                 } else {
@@ -99,11 +109,7 @@ async function watchMode(packageName: string) {
                 await regenerateGoCode(packageName, true)
             }
             console.log("Restarting Go server...")
-            goProcess.kill()
-            try {
-                await killPort(8080)
-            } catch (e) {}
-            goProcess = spawn("go", ["run", "."], {stdio: "inherit"})
+            await createGoProcess()
             console.log("Go server restarted.")
         }
     } finally {
