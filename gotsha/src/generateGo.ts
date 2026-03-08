@@ -86,22 +86,22 @@ export function generateGo(packageName: string, parseResults: Map<string, ParseR
 		}\n`
             let hasSession = false
             let args = func.arguments.map(arg => {
-                    if (arg.type.kind === "special") {
-                        if (arg.type.name === "context") return "ctx"
-                        if (arg.type.name === "session") {
-                            hasSession = true
-                            return "session"
-                        }
+                if (arg.type.kind === "special") {
+                    if (arg.type.name === "context") return "ctx"
+                    if (arg.type.name === "session") {
+                        hasSession = true
+                        return "session"
                     }
-                    return `input.${capitalize(arg.name)}`
-                }).join(", ")
+                }
+                return `input.${capitalize(arg.name)}`
+            }).join(", ")
             if (hasSession) {
                 contents += `
 		session, err := api.GetSession(w, r, ctx)
 		if err != nil {
 			http.Error(w, "Failed to get session", http.StatusInternalServerError)
 			return
-		}`
+		}\n\n`
             }
             contents += `\t\tdata := api.${func.name}(${args})`
             body += handlerTemplate(url, contents)
