@@ -39,7 +39,11 @@ export interface FunctionArgument {
     type: GoType
 }
 
-export type GoType = "string" | "boolean" | {
+export type GoType = {
+    kind: "string"
+} | {
+    kind: "boolean"
+} | {
     kind: "number",
     variant: "int" | "int8" | "int16" | "int32" | "int64" | "uint" | "uint8" | "uint16" | "uint32" | "uint64" | "float32" | "float64"
 } | {
@@ -55,6 +59,9 @@ export type GoType = "string" | "boolean" | {
 } | {
     kind: "struct",
     fields: { name: string, type: GoType }[]
+} | {
+    kind: "special",
+    name: "context" | "session"
 }
 
 function getFunctionDetails(node: Treesitter.SyntaxNode): FunctionDetails {
@@ -88,9 +95,13 @@ function parseGoType(node: Treesitter.SyntaxNode): GoType {
     if (node.type === "type_identifier") {
         switch (node.text) {
             case "string":
-                return "string"
+                return {
+                    kind: "string"
+                }
             case "bool":
-                return "boolean"
+                return {
+                    kind: "boolean"
+                }
             case "int":
             case "int8":
             case "int16":
@@ -142,6 +153,18 @@ function parseGoType(node: Treesitter.SyntaxNode): GoType {
             kind: "struct",
             fields
         }
+    } else if (node.type === "pointer_type") {
+        if (node.text === "*Context") {
+            return {
+                kind: "special",
+                name: "context"
+            }
+        } else if (node.text === "*Session") {
+            return {
+                kind: "special",
+                name: "session"
+            }
+        } else throw new Error(`Unsupported pointer type: ${node.text}, only *Context and *Session are supported`)
     }
     throw new Error(`Unsupported Go type: ${node.type}`)
 }

@@ -37,25 +37,31 @@ const handlerTemplate = (endpoint: string, contents: string) => `
 `
 
 function writeGoType(type: GoType): string {
-    if (type === "string") {
-        return "string"
-    } else if (type === "boolean") {
-        return "bool"
-    } else if (type.kind === "number") {
-        return type.variant
-    } else if (type.kind === "ref") {
-        return type.typeName
-    } else if (type.kind === "array") {
-        return `[]${writeGoType(type.elementType)}`
-    } else if (type.kind === "map") {
-        return `map[${writeGoType(type.keyType)}]${writeGoType(type.valueType)}`
-    } else if (type.kind === "struct") {
-        const fields = type.fields.map(
-            field => `${capitalize(field.name)} ${writeGoType(field.type)} \`json:"${field.name}"\``
-        ).join("; ")
-        return `struct { ${fields} }`
-    } else {
-        throw new Error(`Unsupported Go type: ${JSON.stringify(type)}`)
+    switch (type.kind) {
+        case "string":
+            return "string"
+        case "boolean":
+            return "bool"
+        case "number":
+            return type.variant
+        case "ref":
+            return type.typeName
+        case "array":
+            return `[]${writeGoType(type.elementType)}`
+        case "map":
+            return `map[${writeGoType(type.keyType)}]${writeGoType(type.valueType)}`
+        case "struct":
+            const fields = type.fields.map(
+                field => `${capitalize(field.name)} ${writeGoType(field.type)} \`json:"${field.name}"\``
+            ).join("; ")
+            return `struct { ${fields} }`
+        case "special":
+            switch (type.name) {
+                case "context":
+                    return "*api.Context"
+                case "session":
+                    return "*api.Session"
+            }
     }
 }
 
@@ -66,14 +72,9 @@ export function generateGo(packageName: string, parseResults: Map<string, ParseR
     for (const [file, results] of parseResults.entries()) {
         for (const func of results.functions) {
             const url = getApiUrl(file, func.name)
-            const argsList = func.arguments
-            let hasCtx = false
-            if (argsList.at(-1)?.name === "ctx") {
-                argsList.pop()
-                hasCtx = true
-            }
             let contents = "var input struct {\n"
-            for (const arg of argsList) {
+            for (const arg of func.arguments) {
+                if (arg.type.kind === "special") continue
                 contents += `\t\t\t${capitalize(arg.name)} ${writeGoType(arg.type)} \`json:"${arg.name}"\`\n`
             }
             contents += "\t\t}"
@@ -83,9 +84,24 @@ export function generateGo(packageName: string, parseResults: Map<string, ParseR
 			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
 			return
 		}\n`
-            let args = argsList.map(arg => `input.${capitalize(arg.name)}`).join(", ")
-            if (hasCtx) {
-                args += ", ctx"
+            let hasSession = false
+            let args = func.arguments.map(arg => {
+                    if (arg.type.kind === "special") {
+                        if (arg.type.name === "context") return "ctx"
+                        if (arg.type.name === "session") {
+                            hasSession = true
+                            return "session"
+                        }
+                    }
+                    return `input.${capitalize(arg.name)}`
+                }).join(", ")
+            if (hasSession) {
+                contents += `
+		session, err := api.GetSession(w, r, ctx)
+		if err != nil {
+			http.Error(w, "Failed to get session", http.StatusInternalServerError)
+			return
+		}`
             }
             contents += `\t\tdata := api.${func.name}(${args})`
             body += handlerTemplate(url, contents)
