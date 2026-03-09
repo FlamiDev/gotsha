@@ -1,14 +1,10 @@
 package main
 
 import (
-	"embed"
 	"encoding/json"
-	"gotsha/api"
+	. "gotsha/api"
 	"net/http"
 )
-
-//go:embed dist/*
-var staticFiles embed.FS
 
 func setupServer(ctx *Context, addr string) error {
 
@@ -26,7 +22,7 @@ func setupServer(ctx *Context, addr string) error {
 			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
 			return
 		}
-		data := api.Greeting(input.Name)
+		data := Greeting(input.Name)
 		err = json.NewEncoder(w).Encode(data)
 		if err != nil {
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
@@ -47,7 +43,7 @@ func setupServer(ctx *Context, addr string) error {
 			http.Error(w, "Failed to decode request body", http.StatusBadRequest)
 			return
 		}
-		data := api.Test()
+		data := Test()
 		err = json.NewEncoder(w).Encode(data)
 		if err != nil {
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
@@ -55,6 +51,5 @@ func setupServer(ctx *Context, addr string) error {
 		}
 	})
 
-	http.Handle("/", http.FileServer(http.FS(staticFiles)))
 	return http.ListenAndServe(addr, nil)
 }

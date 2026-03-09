@@ -60,6 +60,9 @@ export type GoType = {
     kind: "struct",
     fields: { name: string, type: GoType }[]
 } | {
+    kind: "pointer",
+    value: GoType
+} | {
     kind: "special",
     name: "context" | "session"
 }
@@ -164,9 +167,13 @@ function parseGoType(node: Treesitter.SyntaxNode, fileName: string): GoType {
                 kind: "special",
                 name: "session"
             }
-        } else throw new Error(
-            `Unsupported pointer type in ${fileName}:${node.startPosition.row}:${node.startPosition.column}: ${node.text}, only *Context and *Session are supported`
-        )
+        } else {
+            const pointee = node.children[1]
+            return {
+                kind: "pointer",
+                value: parseGoType(pointee, fileName)
+            }
+        }
     }
     throw new Error(
         `Unsupported Go type in ${fileName}:${node.startPosition.row}:${node.startPosition.column}: ${node.type} "${node.text}"`

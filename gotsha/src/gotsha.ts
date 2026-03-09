@@ -85,16 +85,23 @@ async function watchMode(packageName: string) {
     await server.listen()
     server.printUrls()
     let goProcess: ChildProcess = null!
-    const createGoProcess = async () => {
-        goProcess?.kill()
+    const killOldProcess = async () => {
         try {
             await killPort(8080)
         } catch (e) {
+            console.error(e)
         }
+    }
+    const createGoProcess = async () => {
+        if (goProcess != null) {
+            const oldProcessKilled = new Promise<void>(
+                resolve => goProcess.once("exit", () => resolve())
+            )
+            await killOldProcess()
+            await oldProcessKilled
+        }
+        await new Promise(resolve => setTimeout(resolve, 500))
         goProcess = spawn("go", ["run", "."], {stdio: "inherit"})
-        goProcess.once("exit", () => {
-            createGoProcess()
-        })
     }
     await createGoProcess()
     try {
@@ -113,7 +120,7 @@ async function watchMode(packageName: string) {
             console.log("Go server restarted.")
         }
     } finally {
-        goProcess.kill()
+        await killOldProcess()
     }
 }
 

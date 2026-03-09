@@ -6,14 +6,14 @@ const template = (packageName: string, body: string, devMode: boolean) => `packa
 import (
 ${devMode ? "" : `	"embed"`}
 	"encoding/json"
-	"${packageName}/api"
+	. "${packageName}/api"
 	"net/http"
 )
 
 ${devMode ? "" : `//go:embed dist/*
 var staticFiles embed.FS`}
 
-func setupServer(ctx *api.Context, addr string) error {
+func setupServer(ctx *Context, addr string) error {
 	${body}
 	${devMode ? "" : `http.Handle("/", http.FileServer(http.FS(staticFiles)))`}
 	return http.ListenAndServe(addr, nil)
@@ -55,12 +55,14 @@ function writeGoType(type: GoType): string {
                 field => `${capitalize(field.name)} ${writeGoType(field.type)} \`json:"${field.name}"\``
             ).join("; ")
             return `struct { ${fields} }`
+        case "pointer":
+            return "*" + writeGoType(type.value)
         case "special":
             switch (type.name) {
                 case "context":
-                    return "*api.Context"
+                    return "*Context"
                 case "session":
-                    return "*api.Session"
+                    return "*Session"
             }
     }
 }
@@ -97,13 +99,13 @@ export function generateGo(packageName: string, parseResults: Map<string, ParseR
             }).join(", ")
             if (hasSession) {
                 contents += `
-		session, err := api.GetSession(w, r, ctx)
+		session, err := GetSession(w, r, ctx)
 		if err != nil {
 			http.Error(w, "Failed to get session", http.StatusInternalServerError)
 			return
 		}\n\n`
             }
-            contents += `\t\tdata := api.${func.name}(${args})`
+            contents += `\t\tdata := ${func.name}(${args})`
             body += handlerTemplate(url, contents)
         }
     }

@@ -54,5 +54,7 @@ function goTypeToTs(goType: GoType): string {
             return `{ ${fields} }`
         case "special":
             return "any"
+        case "pointer":
+            return goTypeToTs(goType.value)
     }
 }
