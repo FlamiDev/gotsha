@@ -21,7 +21,7 @@
   "keywords": [],
   "author": "FlamiDev",
   "license": "MIT",
-  "packageManager": "pnpm@10.24.0",
+  "packageManager": "pnpm@10.31.0",
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/node": "^24.10.1",
