@@ -88,9 +88,7 @@ async function watchMode(packageName: string) {
     const killOldProcess = async () => {
         try {
             await killPort(8080)
-        } catch (e) {
-            console.error(e)
-        }
+        } catch (e) {}
     }
     const createGoProcess = async () => {
         if (goProcess != null) {

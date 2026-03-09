@@ -128,7 +128,7 @@ function parseGoType(node: Treesitter.SyntaxNode, fileName: string): GoType {
                 }
         }
     } else if (node.type === "slice_type") {
-        const elementTypeNode = node.child(1)!
+        const elementTypeNode = node.child(2)!
         return {
             kind: "array",
             elementType: parseGoType(elementTypeNode, fileName)
