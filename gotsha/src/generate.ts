@@ -55,6 +55,6 @@ function goTypeToTs(goType: GoType): string {
         case "special":
             return "any"
         case "pointer":
-            return goTypeToTs(goType.value)
+            return `(${goTypeToTs(goType.value)} | null)`
     }
 }
